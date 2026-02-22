@@ -27,7 +27,9 @@ class TransactionRepository {
   Future<void> addPayment(Payment payment) async {
     final db = await _databaseHelper.database;
 
-    await db.insert('payments', payment.toMap());
+    if (payment.amount <= 0) {
+      throw Exception("Payment amount must be greater than 0");
+    }
 
     final transactionResult = await db.query(
       'transactions',
@@ -35,10 +37,22 @@ class TransactionRepository {
       whereArgs: [payment.transactionId],
     );
 
-    if (transactionResult.isEmpty) return;
+    if (transactionResult.isEmpty) {
+      throw Exception("Transaction not found");
+    }
 
     final transaction =
-        TransactionModel.fromMap(transactionResult.first);
+      TransactionModel.fromMap(transactionResult.first);
+
+    if (transaction.status == 'completed') {
+      throw Exception("Transaction already completed");
+    }
+
+    if (payment.amount > transaction.remainingAmount) {
+      throw Exception("Payment exceeds remaining amount");
+    }
+
+    await db.insert('payments', payment.toMap());
 
     final newRemaining =
         transaction.remainingAmount - payment.amount;
@@ -49,8 +63,8 @@ class TransactionRepository {
     await db.update(
       'transactions',
       {
-        'remaining_amount': newRemaining < 0 ? 0 : newRemaining,
-        'status': newStatus,
+         'remaining_amount': newRemaining,
+         'status': newStatus,
       },
       where: 'id = ?',
       whereArgs: [transaction.id],
