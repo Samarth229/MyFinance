@@ -7,17 +7,17 @@ abstract class AppException implements Exception {
 }
 
 class ValidationException extends AppException {
-  const ValidationException(String message) : super(message);
+  const ValidationException(super.message);
 }
 
 class NotFoundException extends AppException {
-  const NotFoundException(String message) : super(message);
-}
-
-class AppDatabaseException extends AppException {
-  const AppDatabaseException(String message) : super(message);
+  const NotFoundException(super.message);
 }
 
 class BusinessLogicException extends AppException {
-  const BusinessLogicException(String message) : super(message);
+  const BusinessLogicException(super.message);
+}
+
+class AppDatabaseException extends AppException {
+  const AppDatabaseException(super.message);
 }
