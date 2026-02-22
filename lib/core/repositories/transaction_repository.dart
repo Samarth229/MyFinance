@@ -11,6 +11,21 @@ class TransactionRepository {
     return await db.insert('transactions', transaction.toMap());
   }
 
+  Future<void> createMultipleTransactions(
+      List<TransactionModel> transactions) async {
+    final db = await _databaseHelper.database;
+
+    if (transactions.isEmpty) {
+      throw Exception("Transaction list cannot be empty");
+    }
+
+    await db.transaction((txn) async {
+      for (final transaction in transactions) {
+        await txn.insert('transactions', transaction.toMap());
+      }
+    });
+  }
+
   Future<List<TransactionModel>> getTransactionsByPerson(int personId) async {
     final db = await _databaseHelper.database;
 
@@ -31,44 +46,46 @@ class TransactionRepository {
       throw Exception("Payment amount must be greater than 0");
     }
 
-    final transactionResult = await db.query(
-      'transactions',
-      where: 'id = ?',
-      whereArgs: [payment.transactionId],
-    );
+    await db.transaction((txn) async {
+      final transactionResult = await txn.query(
+        'transactions',
+        where: 'id = ?',
+        whereArgs: [payment.transactionId],
+      );
 
-    if (transactionResult.isEmpty) {
-      throw Exception("Transaction not found");
-    }
+      if (transactionResult.isEmpty) {
+        throw Exception("Transaction not found");
+      }
 
-    final transaction =
-      TransactionModel.fromMap(transactionResult.first);
+      final transaction =
+          TransactionModel.fromMap(transactionResult.first);
 
-    if (transaction.status == 'completed') {
-      throw Exception("Transaction already completed");
-    }
+      if (transaction.status == 'completed') {
+        throw Exception("Transaction already completed");
+      }
 
-    if (payment.amount > transaction.remainingAmount) {
-      throw Exception("Payment exceeds remaining amount");
-    }
+      if (payment.amount > transaction.remainingAmount) {
+        throw Exception("Payment exceeds remaining amount");
+      }
 
-    await db.insert('payments', payment.toMap());
+      await txn.insert('payments', payment.toMap());
 
-    final newRemaining =
-        transaction.remainingAmount - payment.amount;
+      final newRemaining =
+          transaction.remainingAmount - payment.amount;
 
-    final newStatus =
-        newRemaining <= 0 ? 'completed' : 'pending';
+      final newStatus =
+          newRemaining <= 0 ? 'completed' : 'pending';
 
-    await db.update(
-      'transactions',
-      {
-         'remaining_amount': newRemaining,
-         'status': newStatus,
-      },
-      where: 'id = ?',
-      whereArgs: [transaction.id],
-    );
+      await txn.update(
+        'transactions',
+        {
+          'remaining_amount': newRemaining,
+          'status': newStatus,
+        },
+        where: 'id = ?',
+        whereArgs: [transaction.id],
+      );
+    });
   }
 
   Future<double> getTotalPendingForPerson(int personId) async {
