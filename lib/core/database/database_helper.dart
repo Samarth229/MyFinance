@@ -23,6 +23,9 @@ class DatabaseHelper {
     return await openDatabase(
       path,
       version: 1,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
       onCreate: _onCreate,
     );
   }
@@ -47,7 +50,9 @@ class DatabaseHelper {
         remaining_amount REAL NOT NULL,
         status TEXT NOT NULL,
         created_at TEXT NOT NULL,
-        FOREIGN KEY (person_id) REFERENCES persons (id)
+        FOREIGN KEY (person_id)
+          REFERENCES persons (id)
+          ON DELETE CASCADE
       )
     ''');
 
@@ -57,7 +62,9 @@ class DatabaseHelper {
         transaction_id INTEGER NOT NULL,
         amount REAL NOT NULL,
         created_at TEXT NOT NULL,
-        FOREIGN KEY (transaction_id) REFERENCES transactions (id)
+        FOREIGN KEY (transaction_id)
+          REFERENCES transactions (id)
+          ON DELETE CASCADE
       )
     ''');
   }
