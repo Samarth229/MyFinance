@@ -32,7 +32,7 @@ DebtTrack is an Android app that helps you manage your money with friends — tr
 
 ## Download
 
-### ⬇️ [Download DebtTrack.apk](sha256:19429e6229fb0a20c83cb122dbaf85870193fa48d97caf96ad74a7f9ca1f5515)
+### ⬇️ [Download DebtTrack.apk](https://github.com/Samarth229/DebtTrack/releases/download/v1.0.0/DebtTrack.apk)
 
 ### Steps to install:
 
