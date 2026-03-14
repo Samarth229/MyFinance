@@ -89,7 +89,7 @@ class _LoansScreenState extends State<LoansScreen> {
                             title: 'No loans',
                             subtitle: _filter == 'all'
                                 ? 'No loan transactions yet'
-                                : 'No ${_filter == 'giving' ? 'given' : 'taken'} loans',
+                                : 'No ${_filter == 'giving' ? 'lent' : 'borrowed'} loans',
                           )
                         : ListView.separated(
                             padding: const EdgeInsets.all(16),
@@ -194,9 +194,9 @@ class _LoansScreenState extends State<LoansScreen> {
         children: [
           Expanded(child: _filterBtn('all', 'All')),
           const SizedBox(width: 8),
-          Expanded(child: _filterBtn('giving', 'Given')),
+          Expanded(child: _filterBtn('giving', 'Lent')),
           const SizedBox(width: 8),
-          Expanded(child: _filterBtn('taking', 'Taken')),
+          Expanded(child: _filterBtn('taking', 'Borrowed')),
         ],
       ),
     );

@@ -9,11 +9,17 @@ import 'ui/screens/permission_screen.dart';
 import 'ui/screens/splash_screen.dart';
 import 'ui/theme/app_theme.dart';
 
-void main() {
+final themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.light);
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
+  final prefs = await SharedPreferences.getInstance();
+  final isDark = prefs.getBool('dark_mode') ?? false;
+  themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
   runApp(const MyFinanceApp());
 }
 
@@ -22,11 +28,18 @@ class MyFinanceApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'DebtTrack',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.theme,
-      home: const _Launcher(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      child: const _Launcher(),
+      builder: (_, mode, child) => MaterialApp(
+        title: 'DebtTrack',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.theme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: mode,
+        themeAnimationDuration: Duration.zero,
+        home: child,
+      ),
     );
   }
 }

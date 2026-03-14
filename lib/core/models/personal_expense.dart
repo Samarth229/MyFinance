@@ -3,6 +3,7 @@ class PersonalExpense {
   final double amount;
   final String source; // 'gpay_self', 'split_self', 'partial_self', 'direct'
   final String? description;
+  final String? category; // 'Transport', 'Food', 'Family', 'Accessories', 'Others'
   final DateTime createdAt;
 
   PersonalExpense({
@@ -10,6 +11,7 @@ class PersonalExpense {
     required this.amount,
     required this.source,
     this.description,
+    this.category,
     required this.createdAt,
   });
 
@@ -18,6 +20,7 @@ class PersonalExpense {
         'amount': amount,
         'source': source,
         'description': description,
+        'category': category,
         'created_at': createdAt.toIso8601String(),
       };
 
@@ -26,6 +29,7 @@ class PersonalExpense {
         amount: map['amount'] as double,
         source: map['source'] as String,
         description: map['description'] as String?,
+        category: map['category'] as String?,
         createdAt: DateTime.parse(map['created_at'] as String),
       );
 }

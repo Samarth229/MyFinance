@@ -10,17 +10,85 @@ class AppTheme {
   static const Color loanColor = Color(0xFF8E24AA);
   static const Color splitColor = Color(0xFF1E88E5);
 
-  static ThemeData get theme => ThemeData(
+  static ThemeData get darkTheme => ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: primary),
-        scaffoldBackgroundColor: const Color(0xFFF0F2F8),
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(seedColor: primary, brightness: Brightness.dark),
+        scaffoldBackgroundColor: Colors.black,
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: ZoomPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          },
+        ),
         appBarTheme: const AppBarTheme(
           elevation: 0,
-          backgroundColor: primary,
+          backgroundColor: Colors.black,
           foregroundColor: Colors.white,
           iconTheme: IconThemeData(color: Colors.white),
           titleTextStyle: TextStyle(
             color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
+          ),
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          selectedItemColor: Color(0xFF7986CB),
+          unselectedItemColor: Color(0xFF757575),
+          backgroundColor: Color(0xFF111111),
+          elevation: 8,
+          showUnselectedLabels: true,
+          type: BottomNavigationBarType.fixed,
+        ),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          color: const Color(0xFF1C1C1C),
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: Color(0xFF2A2A2A)),
+          ),
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: primary,
+          foregroundColor: Colors.white,
+          elevation: 4,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            animationDuration: Duration.zero,
+            backgroundColor: primary,
+            foregroundColor: Colors.white,
+            minimumSize: const Size.fromHeight(50),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            elevation: 0,
+            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, inherit: false),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(animationDuration: Duration.zero),
+        ),
+        dividerTheme: const DividerThemeData(color: Color(0xFF2A2A2A), thickness: 1),
+      );
+
+  static ThemeData get theme => ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: primary),
+        scaffoldBackgroundColor: Colors.white,
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: ZoomPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          },
+        ),
+        appBarTheme: const AppBarTheme(
+          elevation: 0,
+          backgroundColor: Colors.white,
+          foregroundColor: Color(0xFF1A237E),
+          iconTheme: IconThemeData(color: Color(0xFF1A237E)),
+          titleTextStyle: TextStyle(
+            color: Color(0xFF1A237E),
             fontSize: 18,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.2,
@@ -67,6 +135,7 @@ class AppTheme {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
+            animationDuration: Duration.zero,
             backgroundColor: primary,
             foregroundColor: Colors.white,
             minimumSize: const Size.fromHeight(50),
@@ -74,8 +143,11 @@ class AppTheme {
                 borderRadius: BorderRadius.circular(10)),
             elevation: 0,
             textStyle: const TextStyle(
-                fontSize: 15, fontWeight: FontWeight.w600),
+                fontSize: 15, fontWeight: FontWeight.w600, inherit: false),
           ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(animationDuration: Duration.zero),
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: primary,

@@ -34,6 +34,10 @@ dependencies:
   # First-launch & flags
   shared_preferences: ^2.3.2
 
+  # PDF generation & sharing
+  pdf: ^3.11.0
+  printing: ^5.13.0
+
   flutter_launcher_icons: ^0.14.3
 
 dependency_overrides:

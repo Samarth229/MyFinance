@@ -101,14 +101,23 @@ class _BillItemsScreenState extends State<BillItemsScreen> {
     double selfTotal = 0.0;
 
     for (final item in _items) {
-      if (item.selfIncluded) selfTotal += item.basePrice;
+      final friendsQty =
+          item.assignments.fold(0.0, (s, a) => s + a.quantity);
+      final totalQty = friendsQty + (item.selfIncluded ? 1.0 : 0.0);
+      if (totalQty == 0) continue;
+
+      // Divide item price proportionally among all participants (friends + self)
       for (final a in item.assignments) {
+        final share = item.basePrice * a.quantity / totalQty;
         final key = a.person.id?.toString() ?? a.person.name;
         if (totals.containsKey(key)) {
-          totals[key]!.amount += item.basePrice * a.quantity;
+          totals[key]!.amount += share;
         } else {
-          totals[key] = _PersonTotal(a.person, item.basePrice * a.quantity);
+          totals[key] = _PersonTotal(a.person, share);
         }
+      }
+      if (item.selfIncluded) {
+        selfTotal += item.basePrice / totalQty;
       }
     }
 

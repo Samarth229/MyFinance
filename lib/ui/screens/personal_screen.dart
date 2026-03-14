@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/repositories/personal_expense_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
+import '../../core/services/expense_report_service.dart';
 import '../theme/app_theme.dart';
 import 'loans_screen.dart';
 import 'profile_screen.dart';
@@ -29,6 +30,8 @@ class _PersonalScreenState extends State<PersonalScreen> {
   double _loansTakenTotal = 0;
   double _splitTotal = 0;
   bool _loading = true;
+  bool _generatingPdf = false;
+  final _reportService = ExpenseReportService();
 
   @override
   void initState() {
@@ -80,6 +83,21 @@ class _PersonalScreenState extends State<PersonalScreen> {
     }
   }
 
+  Future<void> _downloadReport() async {
+    setState(() => _generatingPdf = true);
+    try {
+      await _reportService.generateAndShare();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _generatingPdf = false);
+    }
+  }
+
   Future<void> _openProfile() async {
     await Navigator.push(
       context,
@@ -123,9 +141,13 @@ class _PersonalScreenState extends State<PersonalScreen> {
                 children: [
                   _buildSelfCard(),
                   const SizedBox(height: 12),
+                  _buildMonthlyCard(),
+                  const SizedBox(height: 12),
                   _buildLoansCard(),
                   const SizedBox(height: 12),
                   _buildGraph(),
+                  const SizedBox(height: 16),
+                  _buildDownloadButton(),
                   const SizedBox(height: 80),
                 ],
               ),
@@ -173,6 +195,95 @@ class _PersonalScreenState extends State<PersonalScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildMonthlyCard() {
+    final now = DateTime.now();
+    final monthName = _monthName(now.month);
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final daysPassed = now.day;
+    final daysLeft = daysInMonth - daysPassed;
+    final progress = daysPassed / daysInMonth;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Monthly Expense — $monthName ${now.year}',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '$daysLeft days left',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '₹${_fmt(_thisMonth)}',
+              style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF388E3C)),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'spent in $monthName',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 6,
+                backgroundColor: Colors.grey.shade200,
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(Color(0xFF388E3C)),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Day $daysPassed of $daysInMonth',
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey.shade500)),
+                Text('Resets on 1 ${_monthName(now.month % 12 + 1)}',
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey.shade400)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _monthName(int month) {
+    const names = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return names[(month - 1).clamp(0, 11)];
   }
 
   Widget _statChip(String label, String value) {
@@ -274,14 +385,42 @@ class _PersonalScreenState extends State<PersonalScreen> {
     );
   }
 
+  Widget _buildDownloadButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _generatingPdf ? null : _downloadReport,
+        icon: _generatingPdf
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+            : const Icon(Icons.picture_as_pdf_outlined, color: Colors.white),
+        label: Text(
+          _generatingPdf ? 'Generating...' : 'Download 6-Month Report',
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF388E3C),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+
   Widget _buildGraph() {
     final maxVal = [_totalSelf, _loansGivenTotal, _loansTakenTotal, _splitTotal]
         .reduce((a, b) => a > b ? a : b);
 
     final bars = [
       _BarData('Self', _totalSelf, AppTheme.success),
-      _BarData('Given', _loansGivenTotal, AppTheme.primary),
-      _BarData('Taken', _loansTakenTotal, AppTheme.danger),
+      _BarData('Lent', _loansGivenTotal, AppTheme.primary),
+      _BarData('Borrowed', _loansTakenTotal, AppTheme.danger),
       _BarData('Split', _splitTotal, AppTheme.splitColor),
     ];
 

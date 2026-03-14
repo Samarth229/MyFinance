@@ -23,8 +23,8 @@ class TransactionTile extends StatelessWidget {
     final statusColor = isCompleted ? AppTheme.success : AppTheme.warning;
     final typeColor = isLoan ? AppTheme.loanColor : AppTheme.splitColor;
     final typeLabel = switch (transaction.type) {
-      'loan_giving' => 'LOAN GIVEN',
-      'loan_taking' => 'LOAN TAKEN',
+      'loan_giving' => 'LENT',
+      'loan_taking' => 'BORROWED',
       String t => t.toUpperCase(),
     };
     final paid = transaction.totalAmount - transaction.remainingAmount;

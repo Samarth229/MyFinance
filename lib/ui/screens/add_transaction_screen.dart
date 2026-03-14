@@ -129,11 +129,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _dialogOption(icon: Icons.arrow_upward, label: 'Giving',
+            _dialogOption(icon: Icons.arrow_upward, label: 'Lend',
                 subtitle: 'You are lending money', value: 'giving',
                 color: AppTheme.success),
             const SizedBox(height: 10),
-            _dialogOption(icon: Icons.arrow_downward, label: 'Taking',
+            _dialogOption(icon: Icons.arrow_downward, label: 'Borrow',
                 subtitle: 'You are borrowing money', value: 'taking',
                 color: AppTheme.danger),
           ],
@@ -179,7 +179,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<void> _showPersonalEntryDialog() async {
-    final ctrl = TextEditingController();
+    // Step 1: pick category
+    final category = await _showCategoryPickerDialog();
+    if (category == null || !mounted) return;
+
+    // Step 2: enter description + amount
+    final amountCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
     bool saved = false;
 
     await showDialog(
@@ -188,16 +194,37 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: saved ? null
-              : const Text('Personal Expense',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+          title: saved
+              ? null
+              : Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: _categoryColor(category).withValues(alpha: 0.15),
+                      child: Icon(_categoryIcon(category),
+                          color: _categoryColor(category), size: 18),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(category,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ],
+                ),
           content: saved
               ? _buildSuccessTick()
               : Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
-                      controller: ctrl,
+                      controller: descCtrl,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Description (optional)',
+                        prefixIcon: Icon(Icons.edit_note),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: amountCtrl,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         labelText: 'Amount (₹)',
@@ -207,30 +234,106 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     ),
                   ],
                 ),
-          actions: saved ? null : [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final amount = double.tryParse(ctrl.text.trim());
-                if (amount == null || amount <= 0) return;
-                await _personalRepo.insert(PersonalExpense(
-                  amount: amount,
-                  source: 'direct',
-                  createdAt: DateTime.now(),
-                ));
-                setS(() => saved = true);
-                await Future.delayed(const Duration(milliseconds: 2200));
-                if (ctx.mounted) Navigator.pop(ctx);
-              },
-              child: const Text('Done'),
-            ),
-          ],
+          actions: saved
+              ? null
+              : [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final amount = double.tryParse(amountCtrl.text.trim());
+                      if (amount == null || amount <= 0) return;
+                      final desc = descCtrl.text.trim();
+                      await _personalRepo.insert(PersonalExpense(
+                        amount: amount,
+                        source: 'direct',
+                        description: desc.isNotEmpty ? desc : null,
+                        category: category,
+                        createdAt: DateTime.now(),
+                      ));
+                      setS(() => saved = true);
+                      await Future.delayed(const Duration(milliseconds: 2200));
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    },
+                    child: const Text('Done'),
+                  ),
+                ],
         ),
       ),
     );
+  }
+
+  Future<String?> _showCategoryPickerDialog() {
+    final categories = [
+      ('Transport', Icons.directions_bus, const Color(0xFF1565C0)),
+      ('Food', Icons.restaurant, const Color(0xFFE65100)),
+      ('Family', Icons.family_restroom, const Color(0xFF6A1B9A)),
+      ('Accessories', Icons.shopping_bag, const Color(0xFF00838F)),
+      ('Others', Icons.category, const Color(0xFF558B2F)),
+    ];
+
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Select Category',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: categories.map((c) {
+            return InkWell(
+              onTap: () => Navigator.pop(ctx, c.$1),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: c.$3.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: c.$3.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: c.$3.withValues(alpha: 0.15),
+                      child: Icon(c.$2, color: c.$3, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(c.$1,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 14)),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  IconData _categoryIcon(String category) {
+    switch (category) {
+      case 'Transport': return Icons.directions_bus;
+      case 'Food': return Icons.restaurant;
+      case 'Family': return Icons.family_restroom;
+      case 'Accessories': return Icons.shopping_bag;
+      default: return Icons.category;
+    }
+  }
+
+  Color _categoryColor(String category) {
+    switch (category) {
+      case 'Transport': return const Color(0xFF1565C0);
+      case 'Food': return const Color(0xFFE65100);
+      case 'Family': return const Color(0xFF6A1B9A);
+      case 'Accessories': return const Color(0xFF00838F);
+      default: return const Color(0xFF558B2F);
+    }
   }
 
   // ── Submit ────────────────────────────────────────────────────────────────
@@ -315,7 +418,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   String get _loanButtonLabel {
     if (_type == 'loan') {
-      return _loanSubtype == 'giving' ? 'Giving ▼' : 'Taking ▼';
+      return _loanSubtype == 'giving' ? 'Lend ▼' : 'Borrow ▼';
     }
     return 'Loan';
   }
@@ -421,10 +524,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         decoration: BoxDecoration(
           color: _includeSelf
               ? AppTheme.success.withValues(alpha: 0.10)
-              : Colors.white,
+              : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: _includeSelf ? AppTheme.success : Colors.grey.shade300,
+            color: _includeSelf ? AppTheme.success : Theme.of(context).dividerColor,
             width: _includeSelf ? 2 : 1,
           ),
         ),
@@ -489,10 +592,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.10) : Colors.white,
+          color: selected ? color.withValues(alpha: 0.10) : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selected ? color : Colors.grey.shade300,
+            color: selected ? color : Theme.of(context).dividerColor,
             width: selected ? 2 : 1,
           ),
         ),
@@ -521,10 +624,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? AppTheme.primary.withValues(alpha: 0.06) : Colors.white,
+          color: selected ? AppTheme.primary.withValues(alpha: 0.10) : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selected ? AppTheme.primary : Colors.grey.shade200,
+            color: selected ? AppTheme.primary : Theme.of(context).dividerColor,
             width: selected ? 1.5 : 1,
           ),
         ),

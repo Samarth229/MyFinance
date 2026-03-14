@@ -9,7 +9,8 @@ import 'qr_scanner_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback? onGPayLaunched;
-  const DashboardScreen({super.key, this.onGPayLaunched});
+  final VoidCallback? onTotalTransactionsTap;
+  const DashboardScreen({super.key, this.onGPayLaunched, this.onTotalTransactionsTap});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -177,11 +178,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Row(
       children: [
         Expanded(
-          child: SummaryCard(
-            label: 'Total Transactions',
-            value: '${s.totalTransactions}',
-            icon: Icons.receipt_long,
-            color: AppTheme.splitColor,
+          child: GestureDetector(
+            onTap: widget.onTotalTransactionsTap,
+            child: SummaryCard(
+              label: 'Total Transactions',
+              value: '${s.totalTransactions}',
+              icon: Icons.receipt_long,
+              color: AppTheme.splitColor,
+            ),
           ),
         ),
         const SizedBox(width: 12),

@@ -28,7 +28,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -81,6 +81,7 @@ class DatabaseHelper {
         amount REAL NOT NULL,
         source TEXT NOT NULL,
         description TEXT,
+        category TEXT,
         created_at TEXT NOT NULL
       )
     ''');
@@ -97,6 +98,11 @@ class DatabaseHelper {
           created_at TEXT NOT NULL
         )
       ''');
+    }
+    if (oldVersion < 3) {
+      await db.execute(
+        'ALTER TABLE personal_expenses ADD COLUMN category TEXT',
+      );
     }
   }
 }
