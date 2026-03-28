@@ -52,6 +52,43 @@ class MainActivity : FlutterActivity() {
                         result.success(isAccessibilityServiceEnabled())
                     }
 
+                    "isAppInstalled" -> {
+                        val pkg = call.arguments as? String ?: ""
+                        try {
+                            packageManager.getPackageInfo(pkg, 0)
+                            result.success(true)
+                        } catch (e: android.content.pm.PackageManager.NameNotFoundException) {
+                            result.success(false)
+                        }
+                    }
+
+                    "openApp" -> {
+                        val pkg = call.arguments as? String ?: ""
+                        val intent = packageManager.getLaunchIntentForPackage(pkg)
+                        if (intent != null) {
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                            result.success(null)
+                        } else {
+                            result.error("NOT_INSTALLED", "App not installed", null)
+                        }
+                    }
+
+                    "launchUpiPayment" -> {
+                        val upi = call.argument<String>("upi") ?: ""
+                        val pkg = call.argument<String>("package") ?: ""
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(upi)).apply {
+                                setPackage(pkg)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(intent)
+                            result.success(null)
+                        } catch (e: Exception) {
+                            result.error("LAUNCH_FAILED", e.message, null)
+                        }
+                    }
+
                     else -> result.notImplemented()
                 }
             }

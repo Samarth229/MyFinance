@@ -4,6 +4,7 @@ class Person {
   final String? phone;
   final String? upi;
   final DateTime createdAt;
+  final bool isTemporary;
 
   Person({
     this.id,
@@ -11,6 +12,7 @@ class Person {
     this.phone,
     this.upi,
     required this.createdAt,
+    this.isTemporary = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -20,6 +22,7 @@ class Person {
       'phone': phone,
       'upi': upi,
       'created_at': createdAt.toIso8601String(),
+      'is_temporary': isTemporary ? 1 : 0,
     };
   }
 
@@ -30,6 +33,7 @@ class Person {
       phone: map['phone'],
       upi: map['upi'],
       createdAt: DateTime.parse(map['created_at']),
+      isTemporary: (map['is_temporary'] ?? 0) == 1,
     );
   }
 }

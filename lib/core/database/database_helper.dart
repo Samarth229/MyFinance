@@ -28,7 +28,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -44,7 +44,8 @@ class DatabaseHelper {
         name TEXT NOT NULL,
         phone TEXT,
         upi TEXT,
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        is_temporary INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -102,6 +103,11 @@ class DatabaseHelper {
     if (oldVersion < 3) {
       await db.execute(
         'ALTER TABLE personal_expenses ADD COLUMN category TEXT',
+      );
+    }
+    if (oldVersion < 4) {
+      await db.execute(
+        'ALTER TABLE persons ADD COLUMN is_temporary INTEGER NOT NULL DEFAULT 0',
       );
     }
   }

@@ -6,7 +6,8 @@ import '../theme/app_theme.dart';
 class PersonAssignment {
   Person person;
   double quantity;
-  PersonAssignment({required this.person, this.quantity = 1});
+  bool onlyOnce;
+  PersonAssignment({required this.person, this.quantity = 1, this.onlyOnce = false});
 }
 
 Future<List<PersonAssignment>?> showPersonPickerPopup(
@@ -58,7 +59,6 @@ class PersonPickerPopup extends StatefulWidget {
 class _PersonPickerPopupState extends State<PersonPickerPopup> {
   final _repo = PersonRepository();
   final _searchController = TextEditingController();
-  final _newNameController = TextEditingController();
 
   List<Person> _allPersons = [];
   List<Person> _filtered = [];
@@ -81,7 +81,6 @@ class _PersonPickerPopupState extends State<PersonPickerPopup> {
   @override
   void dispose() {
     _searchController.dispose();
-    _newNameController.dispose();
     super.dispose();
   }
 
@@ -114,14 +113,95 @@ class _PersonPickerPopupState extends State<PersonPickerPopup> {
     });
   }
 
-  void _addNewPerson() {
-    final name = _newNameController.text.trim();
-    if (name.isEmpty) return;
-    final newPerson = Person(name: name, createdAt: DateTime.now());
-    setState(() {
-      _selected[name] = PersonAssignment(person: newPerson, quantity: 1);
-      _newNameController.clear();
-    });
+  Future<void> _showAddPersonDialog() async {
+    final nameCtrl = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Add Person',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: nameCtrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(
+            hintText: 'Enter person name',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final name = nameCtrl.text.trim();
+                    if (name.isEmpty) return;
+                    final newPerson =
+                        Person(name: name, createdAt: DateTime.now());
+                    setState(() {
+                      _selected[name] = PersonAssignment(
+                          person: newPerson, quantity: 1, onlyOnce: true);
+                    });
+                    Navigator.pop(ctx);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Only Once'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final name = nameCtrl.text.trim();
+                    if (name.isEmpty) return;
+                    // Check if already exists
+                    final exists = _allPersons.any((p) =>
+                        p.name.toLowerCase() == name.toLowerCase());
+                    Person person;
+                    if (exists) {
+                      person = _allPersons.firstWhere((p) =>
+                          p.name.toLowerCase() == name.toLowerCase());
+                    } else {
+                      // Save to DB
+                      person = Person(name: name, createdAt: DateTime.now());
+                      final id = await _repo.insertPerson(person);
+                      person = Person(
+                          id: id, name: name, createdAt: DateTime.now());
+                      if (!ctx.mounted) return;
+                      setState(() {
+                        _allPersons.add(person);
+                      });
+                      _filter();
+                    }
+                    final key = person.id?.toString() ?? person.name;
+                    if (!ctx.mounted) return;
+                    setState(() {
+                      _selected[key] =
+                          PersonAssignment(person: person, quantity: 1);
+                    });
+                    Navigator.pop(ctx);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Update Contact'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   void _update() {
@@ -142,125 +222,113 @@ class _PersonPickerPopupState extends State<PersonPickerPopup> {
       insetPadding: const EdgeInsets.all(16),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.75,
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
+            // Row 1: Title
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 10),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Assign People',
+                    style: TextStyle(
+                        fontSize: 17, fontWeight: FontWeight.bold)),
+              ),
+            ),
+            // Row 2: Add Person + Self buttons
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _showAddPersonDialog,
+                      icon: const Icon(Icons.person_add, size: 16),
+                      label: const Text('Add Person'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primary,
+                        side: BorderSide(color: AppTheme.primary),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                  if (widget.allowSelf) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () =>
+                            setState(() => _selfIncluded = !_selfIncluded),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _selfIncluded
+                                ? AppTheme.success.withValues(alpha: 0.12)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: _selfIncluded
+                                  ? AppTheme.success
+                                  : Colors.grey.shade400,
+                              width: _selfIncluded ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _selfIncluded
+                                    ? Icons.check_circle
+                                    : Icons.person_outline,
+                                color: AppTheme.success,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 6),
+                              Text('Self',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.success,
+                                      fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            // Row 3: Search + Done
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Row(
                 children: [
                   Expanded(
                     child: TextField(
-                      controller: _newNameController,
+                      controller: _searchController,
                       decoration: InputDecoration(
-                        hintText: 'New person name...',
+                        hintText: 'Search people...',
+                        prefixIcon: const Icon(Icons.search, size: 20),
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed: _addNewPerson,
-                    icon: const Icon(Icons.person_add, size: 16),
-                    label: const Text('Add'),
-                    style: TextButton.styleFrom(
-                        foregroundColor: AppTheme.primary),
-                  ),
+                  const SizedBox(width: 10),
                   ElevatedButton(
                     onPressed: _update,
                     style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(72, 36)),
-                    child: const Text('Update'),
+                        minimumSize: const Size(72, 44)),
+                    child: const Text('Done'),
                   ),
                 ],
               ),
             ),
-            // Self toggle
-            if (widget.allowSelf)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: GestureDetector(
-                  onTap: () => setState(() => _selfIncluded = !_selfIncluded),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: _selfIncluded
-                          ? AppTheme.success.withValues(alpha: 0.10)
-                          : Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: _selfIncluded
-                            ? AppTheme.success
-                            : Colors.grey.shade300,
-                        width: _selfIncluded ? 2 : 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: 20,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: _selfIncluded
-                                ? AppTheme.success
-                                : Colors.transparent,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _selfIncluded
-                                  ? AppTheme.success
-                                  : Colors.grey.shade400,
-                            ),
-                          ),
-                          child: _selfIncluded
-                              ? const Icon(Icons.check,
-                                  size: 13, color: Colors.white)
-                              : null,
-                        ),
-                        const SizedBox(width: 10),
-                        const Icon(Icons.person,
-                            color: AppTheme.success, size: 18),
-                        const SizedBox(width: 8),
-                        const Text('Self',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.success)),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text('add my share to Personal Expense',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey.shade500)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            // Search
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search people...',
-                  prefixIcon: const Icon(Icons.search, size: 20),
-                  isDense: true,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
             const Divider(height: 1),
             // Person list
             Flexible(

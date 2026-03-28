@@ -290,24 +290,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
               ),
               const SizedBox(height: 10),
-              _permTile(
-                ctx: ctx, setS: setS,
-                icon: Icons.accessibility_new, title: 'Background Detection',
-                subtitle: 'Detect GPay even when app is closed',
-                granted: _accessibilityGranted, loading: _waitingForAccessibility,
-                onAllow: () async {
-                  setState(() => _waitingForAccessibility = true);
-                  setS(() {});
-                  try { await _channel.invokeMethod('openAccessibilitySettings'); } catch (_) {}
-                  await Future.delayed(const Duration(seconds: 1));
-                  final acc = await _isAccessibilityEnabled();
-                  setState(() {
-                    _accessibilityGranted = acc;
-                    _waitingForAccessibility = false;
-                  });
-                  setS(() {});
-                },
-              ),
+              if (!Platform.isIOS)
+                _permTile(
+                  ctx: ctx, setS: setS,
+                  icon: Icons.accessibility_new, title: 'Background Detection',
+                  subtitle: 'Detect GPay even when app is closed',
+                  granted: _accessibilityGranted, loading: _waitingForAccessibility,
+                  onAllow: () async {
+                    setState(() => _waitingForAccessibility = true);
+                    setS(() {});
+                    try { await _channel.invokeMethod('openAccessibilitySettings'); } catch (_) {}
+                    await Future.delayed(const Duration(seconds: 1));
+                    final acc = await _isAccessibilityEnabled();
+                    setState(() {
+                      _accessibilityGranted = acc;
+                      _waitingForAccessibility = false;
+                    });
+                    setS(() {});
+                  },
+                ),
             ],
           ),
         ),
@@ -537,7 +538,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Icon(Icons.security_outlined, color: primaryColor, size: 20),
                 ),
                 title: const Text('Permissions', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Camera, Notifications, Accessibility', style: TextStyle(fontSize: 12)),
+                subtitle: Text(
+                  Platform.isIOS ? 'Camera, Notifications' : 'Camera, Notifications, Accessibility',
+                  style: const TextStyle(fontSize: 12),
+                ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: _showPermissionsSheet,
               ),

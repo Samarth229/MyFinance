@@ -6,12 +6,14 @@ class TransactionTile extends StatelessWidget {
   final TransactionModel transaction;
   final String? personName;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
 
   const TransactionTile({
     super.key,
     required this.transaction,
     this.personName,
     this.onTap,
+    this.onDelete,
   });
 
   @override
@@ -57,6 +59,17 @@ class TransactionTile extends StatelessWidget {
                   else
                     const Spacer(),
                   _chip(isCompleted ? 'PAID' : 'PENDING', statusColor),
+                  if (onDelete != null) ...[
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline,
+                          color: Colors.red, size: 20),
+                      onPressed: onDelete,
+                      splashRadius: 18,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 10),

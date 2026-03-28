@@ -5,8 +5,9 @@ import '../theme/app_theme.dart';
 class PersonTile extends StatelessWidget {
   final PersonReport report;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
 
-  const PersonTile({super.key, required this.report, this.onTap});
+  const PersonTile({super.key, required this.report, this.onTap, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +70,16 @@ class PersonTile extends StatelessWidget {
                   ),
                 ],
               ),
+              if (onDelete != null) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: onDelete,
+                  splashRadius: 20,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
               const SizedBox(width: 4),
               Icon(Icons.chevron_right, color: Colors.grey.shade400),
             ],

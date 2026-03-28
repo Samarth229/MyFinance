@@ -135,6 +135,19 @@ class TransactionRepository {
     return result.map((map) => TransactionModel.fromMap(map)).toList();
   }
 
+  Future<void> deleteTransaction(int id) async {
+    final db = await _databaseHelper.database;
+    try {
+      await db.transaction((txn) async {
+        await txn.delete('payments',
+            where: 'transaction_id = ?', whereArgs: [id]);
+        await txn.delete('transactions', where: 'id = ?', whereArgs: [id]);
+      });
+    } catch (e) {
+      throw const AppDatabaseException("Failed to delete transaction");
+    }
+  }
+
   /// Updates remaining_amount and status of a single transaction.
   Future<void> updateTransactionRemaining(
       int id, double newRemaining, String newStatus) async {

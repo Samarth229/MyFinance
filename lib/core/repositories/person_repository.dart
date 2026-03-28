@@ -11,7 +11,8 @@ class PersonRepository {
 
   Future<List<Person>> getAllPersons() async {
     final db = await _databaseHelper.database;
-    final result = await db.query('persons', orderBy: 'created_at DESC');
+    final result = await db.query('persons',
+        where: 'is_temporary = 0', orderBy: 'created_at DESC');
     return result.map((map) => Person.fromMap(map)).toList();
   }
 

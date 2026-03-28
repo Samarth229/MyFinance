@@ -57,6 +57,31 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     _load();
   }
 
+  Future<void> _confirmDelete(TransactionModel t) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Transaction'),
+        content: const Text('Delete this transaction? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await _txnRepo.deleteTransaction(t.id!);
+      _load();
+    }
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
@@ -104,6 +129,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               return TransactionTile(
                                 transaction: t,
                                 personName: _personNames[t.personId],
+                                onDelete: () => _confirmDelete(t),
                                 onTap: () async {
                                   await Navigator.push(
                                     context,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
@@ -130,39 +131,41 @@ class _PermissionScreenState extends State<PermissionScreen>
                 onTap: _requestNotification,
               ),
               const SizedBox(height: 12),
-              _permissionTile(
-                icon: Icons.accessibility_new,
-                title: 'Background Detection',
-                subtitle: 'Detect GPay even when app is closed',
-                granted: _accessibilityGranted,
-                onTap: _waitingForAccessibility ? null : _requestAccessibility,
-                loading: _waitingForAccessibility,
-              ),
-
-              if (_accessibilityDenied) ...[
+              if (!Platform.isIOS) ...[
                 const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.orange.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline,
-                          color: Colors.orange.shade700, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Without this permission, you\'ll need to open MyFinance manually after every GPay payment to track it.',
-                          style: TextStyle(
-                              fontSize: 12, color: Colors.orange.shade800),
-                        ),
-                      ),
-                    ],
-                  ),
+                _permissionTile(
+                  icon: Icons.accessibility_new,
+                  title: 'Background Detection',
+                  subtitle: 'Detect GPay even when app is closed',
+                  granted: _accessibilityGranted,
+                  onTap: _waitingForAccessibility ? null : _requestAccessibility,
+                  loading: _waitingForAccessibility,
                 ),
+                if (_accessibilityDenied) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.orange.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            color: Colors.orange.shade700, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Without this permission, you\'ll need to open MyFinance manually after every GPay payment to track it.',
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.orange.shade800),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
 
               const Spacer(),

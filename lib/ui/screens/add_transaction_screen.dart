@@ -164,6 +164,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             const SizedBox(height: 10),
             _dialogOption(icon: Icons.camera_alt, label: 'Scan Bill',
                 subtitle: 'Photo → auto extract items', value: 'scan'),
+            const SizedBox(height: 10),
+            _dialogOption(icon: Icons.photo_library, label: 'Upload Bill',
+                subtitle: 'Pick from gallery → auto extract', value: 'upload'),
           ],
         ),
       ),
@@ -172,9 +175,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     if (choice == 'manual') {
       Navigator.push(context,
           MaterialPageRoute(builder: (_) => BillItemsScreen(type: _type)));
-    } else {
+    } else if (choice == 'scan') {
       Navigator.push(context,
           MaterialPageRoute(builder: (_) => BillScanScreen(type: _type)));
+    } else {
+      Navigator.push(context,
+          MaterialPageRoute(
+              builder: (_) => BillScanScreen(type: _type, useGallery: true)));
     }
   }
 

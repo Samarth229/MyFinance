@@ -138,11 +138,10 @@ class PaymentDialogActivity : Activity() {
             .setTitle("Self Expense")
             .setMessage("How much did you pay?")
             .setView(container)
-            .setPositiveButton("Done") { _, _ ->
+            .setPositiveButton("Update") { _, _ ->
                 val amount = input.text.toString().toDoubleOrNull()
                 if (amount != null && amount > 0) {
-                    savePendingExpense(amount)
-                    showSuccessScreen()
+                    showCategoryDialog(amount)
                 } else {
                     Toast.makeText(this, "Enter a valid amount", Toast.LENGTH_SHORT).show()
                     finish()
@@ -153,10 +152,77 @@ class PaymentDialogActivity : Activity() {
             .show()
     }
 
-    private fun savePendingExpense(amount: Double) {
+    private fun showCategoryDialog(amount: Double) {
+        val dp = resources.displayMetrics.density
+        val categories = listOf(
+            Triple("\uD83D\uDE97  Transport", "#1565C0", "Transport"),
+            Triple("\uD83C\uDF54  Food",       "#E65100", "Food"),
+            Triple("\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67  Family",      "#6A1B9A", "Family"),
+            Triple("\uD83D\uDC5C  Accessories","#00695C", "Accessories"),
+            Triple("\u2022\u2022\u2022  Others",  "#546E7A", "Others")
+        )
+
+        lateinit var dialog: AlertDialog
+
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = 20f * dp
+                setStroke((2f * dp).toInt(), Color.BLACK)
+            }
+            setPadding((20 * dp).toInt(), (20 * dp).toInt(), (20 * dp).toInt(), (20 * dp).toInt())
+
+            addView(TextView(this@PaymentDialogActivity).apply {
+                text = "Select Category"
+                textSize = 16f
+                setTypeface(null, Typeface.BOLD)
+                setTextColor(Color.parseColor("#212121"))
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = (14 * dp).toInt() }
+            })
+
+            for ((label, colorHex, category) in categories) {
+                val btn = Button(this@PaymentDialogActivity).apply {
+                    text = label
+                    textSize = 13f
+                    setTypeface(null, Typeface.BOLD)
+                    setTextColor(Color.WHITE)
+                    isAllCaps = false
+                    background = GradientDrawable().apply {
+                        setColor(Color.parseColor(colorHex))
+                        cornerRadius = 10f * dp
+                    }
+                    setOnClickListener {
+                        dialog.dismiss()
+                        savePendingExpense(amount, category)
+                        showSuccessScreen()
+                    }
+                }
+                addView(btn, LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    (48 * dp).toInt()
+                ).apply { bottomMargin = (8 * dp).toInt() })
+            }
+        }
+
+        dialog = AlertDialog.Builder(this)
+            .setView(card)
+            .setCancelable(true)
+            .create()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.setOnCancelListener { finish() }
+        dialog.show()
+    }
+
+    private fun savePendingExpense(amount: Double, category: String = "") {
         val prefs = getSharedPreferences("myfinance_prefs", Context.MODE_PRIVATE)
         val existing = prefs.getString("pending_personal_expenses", "") ?: ""
-        val newVal = if (existing.isEmpty()) "$amount" else "$existing,$amount"
+        val entry = if (category.isNotEmpty()) "$amount|$category" else "$amount"
+        val newVal = if (existing.isEmpty()) entry else "$existing,$entry"
         prefs.edit().putString("pending_personal_expenses", newVal).apply()
     }
 

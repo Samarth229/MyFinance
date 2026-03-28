@@ -1,11 +1,17 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/analytics/analytics_service.dart';
 import '../../core/analytics/financial_summary.dart';
 import '../../core/services/dashboard_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/summary_card.dart';
 import '../widgets/empty_state.dart';
-import 'qr_scanner_screen.dart';
+import '../widgets/payment_flow_popup.dart';
+import 'add_transaction_screen.dart';
+import 'repay_screen.dart';
+
+const _channel = MethodChannel('com.example.myfinance/gpay');
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback? onGPayLaunched;
@@ -58,13 +64,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  void _openQrScanner() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => QrScannerScreen(onGPayLaunched: widget.onGPayLaunched),
-      ),
-    );
+  Future<void> _openApp(String package) async {
+    try {
+      await _channel.invokeMethod('openApp', package);
+      if (package == 'com.google.android.apps.nbu.paisa.user') {
+        widget.onGPayLaunched?.call();
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('App not installed')),
+        );
+      }
+    }
+  }
+
+  Future<void> _onRecordPayment() async {
+    final result = await showPaymentFlowPopup(context);
+    if (!mounted) return;
+    if (result == true) {
+      _load();
+    } else if (result == 'split' || result == 'loan') {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AddTransactionScreen(preselectedType: result as String),
+        ),
+      );
+      if (mounted) _load();
+    } else if (result == 'repay') {
+      await Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const RepayScreen()));
+      if (mounted) _load();
+    }
   }
 
   @override
@@ -73,11 +105,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text('MyFinance'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.qr_code_scanner),
-            onPressed: _openQrScanner,
-            tooltip: 'Scan QR / Pay',
+          if (Platform.isIOS) ...[
+            _PayButton(
+              label: 'Record',
+              color: const Color(0xFF00897B),
+              onTap: _onRecordPayment,
+            ),
+            const SizedBox(width: 4),
+          ],
+          _PayButton(
+            label: 'GPay',
+            color: const Color(0xFF1A73E8),
+            onTap: () => _openApp('com.google.android.apps.nbu.paisa.user'),
           ),
+          const SizedBox(width: 4),
+          _PayButton(
+            label: 'PhonePe',
+            color: const Color(0xFF5F259F),
+            onTap: () => _openApp('com.phonepe.app'),
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: _loading
@@ -472,6 +519,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             }),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PayButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _PayButton({required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );

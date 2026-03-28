@@ -16,14 +16,8 @@ dependencies:
   path: ^1.8.3
   cupertino_icons: ^1.0.8
 
-  # QR scanning
-  mobile_scanner: ^5.2.3
-
   # Bill OCR
   google_mlkit_text_recognition: ^0.13.0
-
-  # Open GPay / UPI
-  url_launcher: ^6.3.1
 
   # Camera / bill photo
   image_picker: ^1.1.2

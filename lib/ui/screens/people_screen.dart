@@ -182,10 +182,12 @@ class _PeopleScreenState extends State<PeopleScreen> {
                             ),
                             child: PersonTile(
                               report: report,
+                              onDelete: () => _confirmDelete(report),
                               onTap: () async {
                                 final person = await _personRepo
                                     .getPersonById(report.personId);
-                                if (person != null && mounted) {
+                                if (!mounted) return;
+                                if (person != null) {
                                   await Navigator.push(
                                     context,
                                     MaterialPageRoute(

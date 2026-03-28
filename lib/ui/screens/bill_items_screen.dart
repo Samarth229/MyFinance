@@ -101,23 +101,21 @@ class _BillItemsScreenState extends State<BillItemsScreen> {
     double selfTotal = 0.0;
 
     for (final item in _items) {
-      final friendsQty =
-          item.assignments.fold(0.0, (s, a) => s + a.quantity);
-      final totalQty = friendsQty + (item.selfIncluded ? 1.0 : 0.0);
-      if (totalQty == 0) continue;
+      final hasAssignments = item.assignments.isNotEmpty || item.selfIncluded;
+      if (!hasAssignments) continue;
 
-      // Divide item price proportionally among all participants (friends + self)
+      // Each person pays basePrice × their quantity
       for (final a in item.assignments) {
-        final share = item.basePrice * a.quantity / totalQty;
+        final share = item.basePrice * a.quantity;
         final key = a.person.id?.toString() ?? a.person.name;
         if (totals.containsKey(key)) {
           totals[key]!.amount += share;
         } else {
-          totals[key] = _PersonTotal(a.person, share);
+          totals[key] = _PersonTotal(a.person, share, onlyOnce: a.onlyOnce);
         }
       }
       if (item.selfIncluded) {
-        selfTotal += item.basePrice / totalQty;
+        selfTotal += item.basePrice;
       }
     }
 
@@ -135,8 +133,18 @@ class _BillItemsScreenState extends State<BillItemsScreen> {
       for (final entry in totals.values) {
         var person = entry.person;
         if (person.id == null) {
-          final id = await _personRepo.insertPerson(person);
-          person = Person(id: id, name: person.name, createdAt: person.createdAt);
+          final id = await _personRepo.insertPerson(
+            Person(
+              name: person.name,
+              createdAt: person.createdAt,
+              isTemporary: entry.onlyOnce,
+            ),
+          );
+          person = Person(
+              id: id,
+              name: person.name,
+              createdAt: person.createdAt,
+              isTemporary: entry.onlyOnce);
         }
         await _txnService.createEqualSplit(
           totalAmount: entry.amount,
@@ -363,5 +371,6 @@ class _BillItemsScreenState extends State<BillItemsScreen> {
 class _PersonTotal {
   Person person;
   double amount;
-  _PersonTotal(this.person, this.amount);
+  bool onlyOnce;
+  _PersonTotal(this.person, this.amount, {this.onlyOnce = false});
 }
