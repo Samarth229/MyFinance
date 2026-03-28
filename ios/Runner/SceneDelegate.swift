@@ -1,37 +1,36 @@
 import Flutter
 import UIKit
 
-class SceneDelegate: FlutterSceneDelegate {
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
+  var window: UIWindow?
   private var methodChannel: FlutterMethodChannel?
 
-  override func scene(_ scene: UIScene,
-                      willConnectTo session: UISceneSession,
-                      options connectionOptions: UIScene.ConnectionOptions) {
-    super.scene(scene, willConnectTo: session, options: connectionOptions)
-
-    // self.window is set by FlutterSceneDelegate's super call above
-    if let flutterVC = self.window?.rootViewController as? FlutterViewController {
+  func scene(_ scene: UIScene,
+             willConnectTo session: UISceneSession,
+             options connectionOptions: UIScene.ConnectionOptions) {
+    // FlutterAppDelegate sets up the engine; Main.storyboard creates
+    // FlutterViewController and assigns it to self.window automatically.
+    // We just need to register the MethodChannel on top.
+    if let flutterVC = window?.rootViewController as? FlutterViewController {
       setupMethodChannel(flutterVC)
     }
-
     if let url = connectionOptions.urlContexts.first?.url {
       handleURL(url)
     }
   }
 
-  override func scene(_ scene: UIScene,
-                      openURLContexts URLContexts: Set<UIOpenURLContext>) {
-    super.scene(scene, openURLContexts: URLContexts)
+  func scene(_ scene: UIScene,
+             openURLContexts URLContexts: Set<UIOpenURLContext>) {
     if let url = URLContexts.first?.url {
       handleURL(url)
     }
   }
 
   private func setupMethodChannel(_ flutterVC: FlutterViewController) {
-    let messenger = flutterVC.binaryMessenger
-    methodChannel = FlutterMethodChannel(name: "com.example.myfinance/gpay",
-                                         binaryMessenger: messenger)
+    methodChannel = FlutterMethodChannel(
+      name: "com.example.myfinance/gpay",
+      binaryMessenger: flutterVC.binaryMessenger)
     methodChannel?.setMethodCallHandler { [weak self] call, result in
       switch call.method {
       case "openApp":
@@ -61,19 +60,13 @@ class SceneDelegate: FlutterSceneDelegate {
     } else if packageName == "com.phonepe.app" {
       urlString = "phonepe://"
     }
-
     guard let urlStr = urlString, let url = URL(string: urlStr) else {
       result(FlutterError(code: "NOT_FOUND", message: "App not installed", details: nil))
       return
     }
-
     if UIApplication.shared.canOpenURL(url) {
       UIApplication.shared.open(url, options: [:]) { success in
-        if success {
-          result(nil)
-        } else {
-          result(FlutterError(code: "FAILED", message: "Could not open app", details: nil))
-        }
+        result(success ? nil : FlutterError(code: "FAILED", message: "Could not open app", details: nil))
       }
     } else {
       result(FlutterError(code: "NOT_INSTALLED", message: "App not installed", details: nil))
