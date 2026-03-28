@@ -14,7 +14,9 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
-    let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "MyFinanceGPayPlugin")
+    guard let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "MyFinanceGPayPlugin") else {
+      return
+    }
     let channel = FlutterMethodChannel(
       name: "com.example.myfinance/gpay",
       binaryMessenger: registrar.messenger()
