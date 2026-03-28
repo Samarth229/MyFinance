@@ -10,9 +10,8 @@ class SceneDelegate: FlutterSceneDelegate {
                       options connectionOptions: UIScene.ConnectionOptions) {
     super.scene(scene, willConnectTo: session, options: connectionOptions)
 
-    if let windowScene = scene as? UIWindowScene,
-       let window = windowScene.windows.first,
-       let flutterVC = window.rootViewController as? FlutterViewController {
+    // self.window is set by FlutterSceneDelegate's super call above
+    if let flutterVC = self.window?.rootViewController as? FlutterViewController {
       setupMethodChannel(flutterVC)
     }
 
