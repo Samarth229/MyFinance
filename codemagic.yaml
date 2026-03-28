@@ -32,7 +32,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - your@email.com        # ← change to your email
+          - samarthk292@gmail.com        # ← change to your email
         notify:
           success: true
           failure: true
